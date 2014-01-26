@@ -72,6 +72,14 @@ def get_submission_error(page_text):
         end = page_text.find('</li>', start)
     return page_text[start:end]
 
+def iter_readings(last_data, new_data):
+    for (building_name, new_reading) in new_data['data'].items():
+        # Skip if the meter for this building had an error at last reading 
+        if building_name not in last_data['data']:
+            continue
+        last_reading = last_data['data'][building_name]
+        yield (building_name, last_reading, new_reading, new_reading - last_reading)
+
 def push_data(last_data, new_data):
     """Push data to Lucid."""
     time_interval = get_time_interval(last_data['date'], new_data['date'])
@@ -85,13 +93,11 @@ def push_data(last_data, new_data):
             })
 
         # Upload data
-        for (building_name, new_reading) in new_data['data'].items():
-            # Skip if the meter for this building had an error at last reading 
-            # Or if a building code doesn't exist for this building.
-            if building_name not in last_data['data'] or not codes[building_name]:
+        for (building_name, last_reading, new_reading, difference) in iter_readings(last_data, new_data):
+            # Skip if building codes don't exist for this building.
+            if not codes[building_name]:
                 continue
-            last_reading = last_data['data'][building_name]
-            submit_one(conn, codes[building_name], new_reading - last_reading, time_interval)
+            submit_one(conn, codes[building_name], difference, time_interval)
 
 def submit_one(conn, building_codes, value, time_interval):
     """Submit new reading for one building."""
@@ -108,7 +114,7 @@ class BuildingNode(object):
     """Simple class to extract building info from XML node."""
     def __init__(self, xml_node):
         self.name = xml_node.attrib['nodeName']
-        self.has_error = ('e' in xml_node[1].attrib)
+        self.error = xml_node[1].attrib['e'] if 'e' in xml_node[1].attrib else ""
         # strips kWh reading of any non-numeric characters, including '.' !!
         self.kwh = int(re.sub(r'[^\d]+', '', xml_node[1].attrib['v'])) 
 
@@ -121,10 +127,13 @@ def pull_data():
     root = ET.fromstring(response.read())
     buildings = [BuildingNode(node) for node in root]
     data = dict((building.name, building.kwh) for building in buildings
-                if not (building.name == "VIP.SCADAWEB" and building.has_error))
+                if not (building.name == "VIP.SCADAWEB" or building.error))
 
     # Carry out definitions for combined dorms.
     for combined, parts in SUM_DEFS:
+        # skip if there is a hole in the constituent data
+        if any(part not in data for part in parts):
+            continue
         data[combined] = sum(data[part] for part in parts)
 
     # Add data dict to the result
