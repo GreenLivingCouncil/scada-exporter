@@ -56,12 +56,8 @@ def get_submission_error(page_text):
     return page_text[start:end]
 
 def push_data(last_data, new_data):
-    # Open the dictionary for building codes
-    with open('codes.json') as codes_f:
-        codes = json.load(codes_f)
-
-    # Get the needed values from the datestrings
     time_interval = get_time_interval(last_data['date'], new_data['date'])
+    codes = open_data('codes.json')
 
     with session() as conn:
         # Login

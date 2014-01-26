@@ -1,3 +1,7 @@
 .*.swp
 ._*
 *.pyc
+last.json
+current.json
+*.bak
+dump.html

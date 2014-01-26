@@ -15,7 +15,7 @@ try:
     push_data(last_data, new_data)
 
     # Save new data as the last data
-    save_data(new_data, NEW_DATA_PATH)
+    save_data(new_data, LAST_DATA_PATH)
 
     # Set success flags
     success = True
