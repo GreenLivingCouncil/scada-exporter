@@ -29,6 +29,10 @@ $(document).ready(function() {
             for (var building in readings) {
                 if (readings.hasOwnProperty(building)) {
                     var row = readings[building];
+                    if (row.error) {
+                        $(escapeId(building + "error")).text(row.error).parent().show();
+                        continue;
+                    }
                     for (var column in row) {
                         if (row.hasOwnProperty(column)) {
                             $(escapeId(building + column)).text(row[column]);
@@ -74,7 +78,11 @@ $(document).ready(function() {
                         "id": buildingCode + columnNames[j]
                     }));
                 }
+                var errorRow = $("<tr></tr>")
+                    .append( $("<td></td>").attr({"colspan": 4, "id": buildingCode + "error", "class": "meter-error"}) )
+                    .hide();
                 $("#datatable").append(row);
+                $("#datatable").append(errorRow);
             }
             
             $("#maintable").fadeIn("slow");

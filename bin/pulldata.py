@@ -16,11 +16,7 @@ save_data(new_data, "current.json")
 last_data = open_data("last.json")
 
 # Build output json
-readings = dict(
-    (building_name, {"last_reading": last_reading, "new_reading": new_reading, "difference": difference})
-    for (building_name, last_reading, new_reading, difference)
-    in iter_readings(last_data, new_data)
-    )
+readings = dict(iter_readings(last_data, new_data))
 output = {
         "current_date": new_data['date'],
         "last_push_date": last_data['date'],

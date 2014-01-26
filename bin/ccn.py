@@ -78,7 +78,22 @@ def iter_readings(last_data, new_data):
         if building_name not in last_data['data']:
             continue
         last_reading = last_data['data'][building_name]
-        yield (building_name, last_reading, new_reading, new_reading - last_reading)
+            
+        if type(new_reading) is not int:
+            entry = {
+                "error": new_reading
+                }
+        elif type(last_reading) is not int:
+            entry = {
+                "error": ("%s [fixed in new reading]" % last_reading)
+                }
+        else:
+            entry = {
+                "last_reading": last_reading,
+                "new_reading": new_reading,
+                "difference": new_reading - last_reading
+                }
+        yield (building_name, entry)
 
 def push_data(last_data, new_data):
     """Push data to Lucid."""
@@ -93,11 +108,11 @@ def push_data(last_data, new_data):
             })
 
         # Upload data
-        for (building_name, last_reading, new_reading, difference) in iter_readings(last_data, new_data):
-            # Skip if building codes don't exist for this building.
+        for (building_name, entry) in iter_readings(last_data, new_data):
+            # Skip if building codes don't exist for this building, or if problems with meter.
             if not codes[building_name]:
                 continue
-            submit_one(conn, codes[building_name], difference, time_interval)
+            submit_one(conn, codes[building_name], entry['difference'], time_interval)
 
 def submit_one(conn, building_codes, value, time_interval):
     """Submit new reading for one building."""
@@ -126,13 +141,15 @@ def pull_data():
     response = urllib2.urlopen(SCADA_URL)
     root = ET.fromstring(response.read())
     buildings = [BuildingNode(node) for node in root]
-    data = dict((building.name, building.kwh) for building in buildings
-                if not (building.name == "VIP.SCADAWEB" or building.error))
+    data = dict((building.name, building.error or building.kwh) 
+                for building in buildings
+                if not building.name == "VIP.SCADAWEB")
 
     # Carry out definitions for combined dorms.
     for combined, parts in SUM_DEFS:
         # skip if there is a hole in the constituent data
-        if any(part not in data for part in parts):
+        if any(type(data[part]) is not int for part in parts):
+            data[combined] = "Error in constituent building meter."
             continue
         data[combined] = sum(data[part] for part in parts)
 
