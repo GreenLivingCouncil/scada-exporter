@@ -16,6 +16,8 @@ $(document).ready(function() {
             return;
         }
 
+        $("#pull-date").text("loading...");
+
         $.getJSON( "bin/pulldata.py" + (event.data.doReset ? "?reset=true" : ""))
         .fail(handleFetchFail)
         .done(function( data ) {

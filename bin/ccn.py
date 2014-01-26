@@ -74,9 +74,6 @@ def get_submission_error(page_text):
 
 def iter_readings(last_data, new_data):
     for (building_name, new_reading) in new_data['data'].items():
-        # Skip if the meter for this building had an error at last reading 
-        if building_name not in last_data['data']:
-            continue
         last_reading = last_data['data'][building_name]
             
         if type(new_reading) is not int:
@@ -136,20 +133,30 @@ class BuildingNode(object):
 def pull_data():
     """Pull data from SCADA XML data sheet into dict with timestamp."""
     import xml.etree.ElementTree as ET
+    import time
 
     # Parse data from SCADA page
-    response = urllib2.urlopen(SCADA_URL)
-    root = ET.fromstring(response.read())
-    buildings = [BuildingNode(node) for node in root]
-    data = dict((building.name, building.error or building.kwh) 
-                for building in buildings
-                if not building.name == "VIP.SCADAWEB")
+    sleep_time = 1
+    while True:
+        response = urllib2.urlopen(SCADA_URL)
+        root = ET.fromstring(response.read())
+        buildings = [BuildingNode(node) for node in root]
+        data = dict((building.name, building.error or building.kwh) 
+                    for building in buildings
+                    if not building.name == "VIP.SCADAWEB")
+        if data:
+            break
+        elif sleep_time > 100:
+            raise Exception("Data pull timed out: SCADA sheet perpetually empty.")
+        else:
+            time.sleep(sleep_time)
+            sleep_time *= 2
 
     # Carry out definitions for combined dorms.
     for combined, parts in SUM_DEFS:
         # skip if there is a hole in the constituent data
         if any(type(data[part]) is not int for part in parts):
-            data[combined] = "Error in constituent building meter."
+            data[combined] = "Error in constituent building meter (at least one of %s)." % ", ".join(parts)
             continue
         data[combined] = sum(data[part] for part in parts)
 
