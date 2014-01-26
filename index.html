@@ -1,0 +1,46 @@
+<html>
+    <head>
+        <title>CCN Data Pushing</title>
+        <link rel="stylesheet" type="text/css" href="VectorLover.css">
+    </head>
+    <body>
+        <table><tr valign="top">
+            <td>
+                <table id="datatable">
+                    <tr>
+                        <th>Building</th>
+                        <th>Last Reading (kWh)</th>
+                        <th>New Reading (kWh)</th>
+                        <th>Consumed Since Last Push (kWh)</th>
+                    </tr>
+                </table>
+            </td>
+            <td>
+                <table>
+                    <tr>
+                        <th><div id="date"></div></th>
+                    </tr>
+                    <tr>
+                        <td style="padding-top:5; padding-bottom:5;"><button onclick="refresh(false)">Refresh</button></td>
+                    </tr>
+                    <tr>
+                        <td style="padding-top:5; padding-bottom:5;"><button id="pushbutton" onclick="pushData()">Push Data to Lucid</button></td>
+                    </tr>
+                    <tr>
+                        <td style="padding-top:5; padding-bottom:5;"><button onclick="reset()">RESET</button></td>
+                    </tr>
+                    <tr>
+                        <td style="padding-top:5; padding-bottom:5;"><button onclick="window.open('http://buildingdashboard.net/facilities/', '_blank')">Lucid Dashboard</button></td>
+                    </tr>
+                </table>
+                <table><tr><td>
+                    Created by <a href="http://sckoo.net/">Stephen Koo</a>.<br/>
+                    Design by <a href="http://www.styleshout.com/">Styleshout.com</a>.
+                </td></tr></table>
+            </td>
+        </tr></table>
+
+        <script type="text/javascript" src="//code.jquery.com/jquery-1.10.2.min.js"></script>
+	<script type="text/javascript" src="app.js"></script>
+    </body>
+</html>
