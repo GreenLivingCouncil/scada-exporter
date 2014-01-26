@@ -5,64 +5,38 @@ import datetime
 import os
 from requests import session
 
+SCADA_URL = "http://scadaweb.stanford.edu/ion/data/getRTxmlData.asp?dgm=//scadaweb/ion-ent/config/diagrams/ud/temp/amrit.dgm&node=WebReachDefaultDiagramNode"
+DASHBOARD_LOGIN_URL = "http://buildingdashboard.net/login"
+LAST_DATA_PATH = "last.json"
+NEW_DATA_PATH = "current.json"
+DT_FORMAT = "%m/%d/%Y %H:%M:%S"
+
 def get_csrf_token(page_text):
     token_i = page_text.find('csrfmiddlewaretoken') + 28
     token_end = page_text.find('\'', token_i)
     return page_text[token_i:token_end]
 
-def get_form_url(building_id, form_id):
-    return ("http://buildingdashboard.net/facilities/%s/manual/%s/save" % (building_id, form_id))
+def smart_post(conn, url, data):
+    response = conn.get(url)
+    data['csrfmiddlewaretoken'] = get_csrf_token(response.text)
+    return conn.post(url, data=data)
 
-def round_time(timestring):
-    if int(timestring[3:]) > 30:
-        return str(int(timestring[:2]) + 1)
-    return str(int(timestring[:2]))
+def get_form_url(building_codes):
+    return ("http://buildingdashboard.net/facilities/point/%s/data" % building_codes[1])
+
+def rounded_hour(dt):
+    """Returns the rounded hour of the given Datetime object."""
+    return dt.hour if dt.minute < 30 else dt.hour + 1
 
 def get_time_interval(last_datestring, new_datestring):
-    return (last_datestring[:10], round_time(last_datestring[11:16]), new_datestring[:10], round_time(new_datestring[11:16]))
-
-def push_data(last_data, new_data):
-    # Get the needed values from the datestrings
-    time_interval = get_time_interval(last_data['date'], new_data['date'])
-    # Open the dictionary for building codes
-    with open('codes.json') as codes_f:
-        codes = json.load(codes_f)
-    with session() as c:
-        # Login
-        request = c.get('http://buildingdashboard.net/login/?next=/')
-        payload = {
-            'username': 'sashab@stanford.edu',
-            'password': 'stanfordglcccn',
-            'csrfmiddlewaretoken': get_csrf_token(request.text)
-        }
-        request = c.post('http://buildingdashboard.net/login/?next=/', data=payload)
-
-        # Upload data
-        for (buildingName, dataValue) in new_data['data'].items():
-            # Skip if the meter for this building had an error at last reading 
-            if buildingName not in last_data['data']:
-                continue
-            submit_one(c, codes[buildingName], dataValue - last_data['data'][buildingName], time_interval)
-
-def submit_one(conn, building_codes, data_val, time_interval):
-    if building_codes == 0:
-        return
-    request = conn.get(get_form_url(building_codes[0], building_codes[1]))
-    payload = {
-        'localStart': str(time_interval[0]),
-        'localStartTime': str(time_interval[1]),
-        'localEnd': str(time_interval[2]),
-        'localEndTime': str(time_interval[3]),
-        'value': str(data_val),
-        'csrfmiddlewaretoken': str(get_csrf_token(request.text))
-    }
-    request = conn.post(get_form_url(building_codes[0], building_codes[1]), data=payload)
-    if u"Reading added" not in request.text:
-        with open("dump.html", "w") as f:
-            f.write(request.text.encode('ascii', 'ignore'))
-            f.write(repr(payload))
-            f.flush()
-        raise Exception("%s %s" % (repr(building_codes), get_submission_error(request.text)))
+    last_date = datetime.datetime.strptime(last_datestring, DT_FORMAT)
+    new_date = datetime.datetime.strptime(new_datestring, DT_FORMAT)
+    return (
+        last_date.strftime("%m/%d/%Y"),
+        rounded_hour(last_date),
+        new_date.strftime("%m/%d/%Y"),
+        rounded_hour(new_date)
+        )
 
 def get_submission_error(page_text):
     start = page_text.find('errorlist') + 15
@@ -73,20 +47,54 @@ def get_submission_error(page_text):
         end = page_text.find('</li>', start)
     return page_text[start:end]
 
-def setup(overwrite=False):
-    if not overwrite and os.path.exists("last.json"):
+def push_data(last_data, new_data):
+    # Get the needed values from the datestrings
+    time_interval = get_time_interval(last_data['date'], new_data['date'])
+
+    # Open the dictionary for building codes
+    with open('codes.json') as codes_f:
+        codes = json.load(codes_f)
+
+    with session() as c:
+        # Login
+        payload = {
+            'username': 'sashab@stanford.edu',
+            'password': 'stanfordglcccn'
+            }
+        request = smart_post(c, DASHBOARD_LOGIN_URL, data=payload)
+
+        # Upload data
+        for (buildingName, dataValue) in new_data['data'].items():
+            # Skip if the meter for this building had an error at last reading 
+            if buildingName not in last_data['data']:
+                continue
+            submit_one(c, codes[buildingName], dataValue - last_data['data'][buildingName], time_interval)
+
+def submit_one(conn, building_codes, data_val, time_interval):
+    if not building_codes:
         return
-    first_data = pull_data()
-    save_data(first_data, "last.json")
+
+    payload = {
+        'localStart': time_interval[0],
+        'localStartTime': time_interval[1],
+        'localEnd': time_interval[2],
+        'localEndTime': time_interval[3],
+        'value': data_val
+        }
+    request = smart_post(conn, get_form_url(building_codes), payload)
+    if u"Reading added" not in request.text:
+        with open("dump.html", "w") as f:
+            f.write(request.text.encode('ascii', 'ignore'))
+        raise Exception("%s %s" % (repr(building_codes), get_submission_error(request.text)))
 
 def pull_data():
     import xml.etree.ElementTree as ET
 
     # Get date and create result dict
-    datestring = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
-    result = {'date': datestring}
+    datestring = datetime.datetime.now().strftime(DT_FORMAT)
+
     # Get data from SCADA page
-    response = urllib2.urlopen('http://scadaweb.stanford.edu/ion/data/getRTxmlData.asp?dgm=//scadaweb/ion-ent/config/diagrams/ud/temp/amrit.dgm&node=WebReachDefaultDiagramNode')
+    response = urllib2.urlopen(SCADA_URL)
     root = ET.fromstring(response.read())
     # Loop through building nodes and add data to a new dict
     data = {}
@@ -106,7 +114,10 @@ def pull_data():
         data[buildingName] = int(buildingNode[1].attrib['v'].translate(None, ', '))
 
     # Add data dict to the result
-    result['data'] = data
+    result = {
+        "date": datestring,
+        "data": data
+        }
     return result
 
 def save_data(data_dict, dest):
@@ -119,3 +130,10 @@ def open_data(src):
     with open(src) as src_f:
         result = json.load(src_f)
     return result
+
+def setup(overwrite=False):
+    """If a last data file doesn't exist, create it from new data."""
+    if not overwrite and os.path.exists(LAST_DATA_PATH):
+        return
+    first_data = pull_data()
+    save_data(first_data, LAST_DATA_PATH)

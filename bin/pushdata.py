@@ -8,26 +8,27 @@ cgitb.enable()
 
 try:
     # Get data from files
-    last_data = open_data("last.json")
-    new_data = open_data("current.json")
+    last_data = open_data(LAST_DATA_PATH)
+    new_data = open_data(NEW_DATA_PATH)
 
     # Upload to Lucid!
     push_data(last_data, new_data)
 
     # Save new data as the last data
-    save_data(new_data, "last.json")
+    save_data(new_data, NEW_DATA_PATH)
 
     # Set success flags
     success = True
     error = ""
+
 except Exception as e:
     success = False
-    error = e.args[0]
+    error = ", ".join([unicode(elem) for elem in e.args])
 
 print "Content-Type:application/json"
 print 
 print json.dumps({
         "success": success,
-        "error": ", ".join([unicode(elem) for elem in e.args])
+        "error": error
         })
 
