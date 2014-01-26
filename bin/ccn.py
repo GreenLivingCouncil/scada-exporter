@@ -7,6 +7,8 @@ import os
 from requests import session
 import logging
 
+logging.basicConfig(filename="ccn.log", level=logging.DEBUG, format='[%(asctime)s] %(message)s')
+
 # URLS
 SCADA_URL = "http://scadaweb.stanford.edu/ion/data/getRTxmlData.asp?dgm=//scadaweb/ion-ent/config/diagrams/ud/temp/amrit.dgm&node=WebReachDefaultDiagramNode"
 DASHBOARD_LOGIN_URL = "http://buildingdashboard.net/login"
@@ -28,8 +30,6 @@ DT_FORMAT = "%m/%d/%Y %H:%M:%S"
 SUM_DEFS = [
     ("CROTHERS.STERN", ("CROTHERS.STERN_BURBANK_ZAPATA_E1152", "CROTHERS.STERN_DONNER_SERRA_E1151", "CROTHERS.STERN_TWAINS_LARKINS_E1154"))
     ]
-
-logging.basicConfig(filename="ccn.log", level=logging.DEBUG, format='[%(asctime)s] %(message)s')
 
 def get_csrf_token(page_text):
     """Extract csrf token from the page content."""
@@ -110,9 +110,13 @@ def push_data(last_data, new_data):
         # Upload data
         for (building_name, entry) in iter_readings(last_data, new_data):
             # Skip if building codes don't exist for this building, or if problems with meter.
-            if not codes[building_name] or "error" in entry:
+            if not codes[building_name]:
+                continue
+            if "error" in entry:
+                logging.warning("Skipped %s due to meter error: %s" % (building_name, entry['error']))
                 continue
             submit_one(conn, codes[building_name], entry['difference'], time_interval)
+            logging.info("Reading submitted for %s" % building_name)
 
 def submit_one(conn, building_codes, value, time_interval):
     """Submit new reading for one building."""
@@ -154,6 +158,7 @@ def pull_data():
         else:
             time.sleep(sleep_time)
             sleep_time *= 2
+    logging.debug("Data retrieved before sleep_time = %s" % sleep_time)
 
     # Carry out definitions for combined dorms.
     for combined, parts in SUM_DEFS:
@@ -186,3 +191,4 @@ def setup(overwrite=False):
         return
     first_data = pull_data()
     save_data(first_data, LAST_DATA_PATH)
+    logging.warning("Overwrote or created new %s" % LAST_DATA_PATH)
