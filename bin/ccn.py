@@ -97,7 +97,7 @@ def pull_data():
         # Skip if there's an error message attribute
         if "e" in buildingNode[1].attrib:
             continue
-        # Sum up the Stern dorms... remove this when officially split up
+        # Sum up the Stern dorms
         if buildingName in ["CROTHERS.STERN_BURBANK_ZAPATA_E1152", "CROTHERS.STERN_DONNER_SERRA_E1151", "CROTHERS.STERN_TWAINS_LARKINS_E1154"]:
             if "CROTHERS.STERN" not in data:
                 data["CROTHERS.STERN"] = 0

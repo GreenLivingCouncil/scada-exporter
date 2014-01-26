@@ -38,7 +38,6 @@ $(document).ready(function() {
     }
 
     function pushData() {
-
         $.getJSON("bin/pushdata.py")
         .done(function( response ) {
             if (response.success) {
@@ -58,29 +57,35 @@ $(document).ready(function() {
 
         $("#pushButton").css("background-color", "yellow")
                         .text("Pushing...");
+    }
 
-//        var xhr=new XMLHttpRequest();
-//        xhr.onreadystatechange = function(){
-//            if (xhr.readyState != 4 || xhr.status != 200) {
-//                return;
-//            }
-//            var xmlDoc = xhr.responseXML;
-//            var headerElem = xmlDoc.getElementsByTagName("transmission")[0];
-//            if (headerElem.getAttribute("success") == "true") {
-//                button.style.backgroundColor = "green";
-//                button.innerHTML = "Success!";
-//            } else {
-//                // Report error if not success.
-//                button.style.backgroundColor = "red";
-//                button.innerHTML = "Error: &quot;" + headerElem.getAttribute("e") + "&quot; Please report to Stephen.";
-//            }
-//        }
-//        var button = document.getElementById("pushbutton");
-//        button.setAttribute("onclick", "");
-//        button.innerHTML = "Pushing...";
-//        button.style.backgroundColor = "yellow";
-//        xhr.open("GET", "bin/pushdata.py", true);
-//        xhr.send();
+    /* Build the empty data table. */
+    function createTable() {
+        $.getJSON("names.json")
+        .done(function( names ) {
+            var columnNames = ["last_reading", "new_reading", "difference"];
+
+            for (var buildingCode in names) {
+                var row = $("<tr></tr>");
+                var buildingName = names[buildingCode] ? names[buildingCode] : buildingCode;
+                row.append($("<td></td>").text(buildingName));
+                for (var j = 0; j < 3; j++) {
+                    row.append($("<td></td>").attr({
+                        "align": "right",
+                        "id": buildingCode + columnNames[j]
+                    }));
+                }
+                $("#datatable").append(row);
+            }
+            
+            $("#maintable").fadeIn("slow");
+            $(window).trigger("tableCreated");
+        })
+        .fail(function( jqxhr, textStatus, error ) {
+            var err = textStatus + ", " + error;
+            // TODO display visible error message
+            console.log( "Request Failed: " + err );
+        });
     }
 
     // Bind handlers for buttons.
@@ -89,31 +94,7 @@ $(document).ready(function() {
     $("#resetButton").click({"doReset": true}, loadData);
     $("#pushButton").click(pushData);
 
-    // Build the empty data table
-    $.getJSON("names.json")
-    .done(function( names ) {
-        var columnNames = ["last_reading", "new_reading", "difference"];
+    createTable();
 
-        for (var buildingCode in names) {
-            var row = $("<tr></tr>");
-            var buildingName = names[buildingCode] ? names[buildingCode] : buildingCode;
-            row.append($("<td></td>").text(buildingName));
-            for (var j = 0; j < 3; j++) {
-                row.append($("<td></td>").attr({
-                    "align": "right",
-                    "id": buildingCode + columnNames[j]
-                }));
-            }
-            $("#datatable").append(row);
-        }
-        
-        $("#maintable").fadeIn("slow");
-        $(window).trigger("tableCreated");
-    })
-    .fail(function( jqxhr, textStatus, error ) {
-        var err = textStatus + ", " + error;
-        // TODO display visible error message
-        console.log( "Request Failed: " + err );
-    });
 
 });
