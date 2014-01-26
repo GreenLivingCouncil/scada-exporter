@@ -4,15 +4,23 @@ $(document).ready(function() {
         return "#" + myid.replace( /(:|\.|\[|\])/g, "\\$1" );
     }
 
+    function handleFetchFail(jqxhr, textStatus, error) {
+        var err = textStatus + ", " + error;
+        // TODO display visible error message
+        console.log( "Request Failed: " + err );
+    }
+
     function loadData(event) {
-        if (event.data.doReset) {
-            if (!window.confirm("Are you sure you want to reset the Last Readings with the most recent data?")) {
-                return;
-            }
+        if (event.data.doReset
+            && !window.confirm("Are you sure you want to reset the Last Readings with the most recent data?")) {
+            return;
         }
 
         $.getJSON( "bin/pulldata.py" + (event.data.doReset ? "?reset=true" : ""))
+        .fail(handleFetchFail)
         .done(function( data ) {
+            // TODO: Reload data every time empty data is received.
+            
             // Update timestamps
             $("#pull-date").text(data.current_date);
             $("#push-date").text(data.last_push_date);
@@ -28,17 +36,12 @@ $(document).ready(function() {
                     }
                 }
             }
-        })
-        .fail(function( jqxhr, textStatus, error ) {
-            var err = textStatus + ", " + error;
-            // TODO: Reload data every time empty data is received.
-            // TODO display visible error message
-            console.log( "Request Failed: " + err );
         });
     }
 
     function pushData() {
         $.getJSON("bin/pushdata.py")
+        .fail(handleFetchFail)
         .done(function( response ) {
             if (response.success) {
                 $("#pushButton").css("background-color", "green")
@@ -48,11 +51,6 @@ $(document).ready(function() {
                                 .text("Error: Please report to Stephen.");
                 console.log(response.error);
             }
-        })
-        .fail(function( jqxhr, textStatus, error ) {
-            var err = textStatus + ", " + error;
-            // TODO display visible error message
-            console.log( "Request Failed: " + err );
         });
 
         $("#pushButton").css("background-color", "yellow")
@@ -62,6 +60,7 @@ $(document).ready(function() {
     /* Build the empty data table. */
     function createTable() {
         $.getJSON("names.json")
+        .fail(handleFetchFail)
         .done(function( names ) {
             var columnNames = ["last_reading", "new_reading", "difference"];
 
@@ -80,11 +79,6 @@ $(document).ready(function() {
             
             $("#maintable").fadeIn("slow");
             $(window).trigger("tableCreated");
-        })
-        .fail(function( jqxhr, textStatus, error ) {
-            var err = textStatus + ", " + error;
-            // TODO display visible error message
-            console.log( "Request Failed: " + err );
         });
     }
 
