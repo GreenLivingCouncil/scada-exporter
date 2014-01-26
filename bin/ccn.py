@@ -116,7 +116,7 @@ def push_data(last_data, new_data):
                 logging.warning("Skipped %s due to meter error: %s" % (building_name, entry['error']))
                 continue
             submit_one(conn, codes[building_name], entry['difference'], time_interval)
-            logging.info("Reading submitted for %s" % building_name)
+            logging.info("Submitted %s kwH for %s" % (entry['difference'], building_name))
 
 def submit_one(conn, building_codes, value, time_interval):
     """Submit new reading for one building."""
