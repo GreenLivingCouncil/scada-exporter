@@ -4,7 +4,7 @@
         <link rel="stylesheet" type="text/css" href="VectorLover.css">
     </head>
     <body>
-        <table><tr valign="top">
+        <table id="maintable" style="display:none;"><tr valign="top">
             <td>
                 <table id="datatable">
                     <tr>
@@ -18,16 +18,21 @@
             <td>
                 <table>
                     <tr>
-                        <th><div id="date"></div></th>
+                        <th>
+                            <div>Last Updated:</div>
+                            <div id="pull-date"></div>
+                            <div>Last Pushed:</div>
+                            <div id="push-date"></div>
+                        </th>
                     </tr>
                     <tr>
-                        <td style="padding-top:5; padding-bottom:5;"><button onclick="refresh(false)">Refresh</button></td>
+                        <td style="padding-top:5; padding-bottom:5;"><button id="refreshButton">Refresh</button></td>
                     </tr>
                     <tr>
-                        <td style="padding-top:5; padding-bottom:5;"><button id="pushbutton" onclick="pushData()">Push Data to Lucid</button></td>
+                        <td style="padding-top:5; padding-bottom:5;"><button id="pushButton">Push Data to Lucid</button></td>
                     </tr>
                     <tr>
-                        <td style="padding-top:5; padding-bottom:5;"><button onclick="reset()">RESET</button></td>
+                        <td style="padding-top:5; padding-bottom:5;"><button id="resetButton">RESET</button></td>
                     </tr>
                     <tr>
                         <td style="padding-top:5; padding-bottom:5;"><button onclick="window.open('http://buildingdashboard.net/facilities/', '_blank')">Lucid Dashboard</button></td>

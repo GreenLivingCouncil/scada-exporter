@@ -74,19 +74,14 @@ def get_submission_error(page_text):
         end = page_text.find('</li>', start)
     return page_text[start:end]
 
-
-def setup(overwrite = False):
-    if (not overwrite) and os.path.exists("last.json"):
+def setup(overwrite=False):
+    if not overwrite and os.path.exists("last.json"):
         return
     first_data = pull_data()
     save_data(first_data, "last.json")
 
-def wrap_data(value):
-    return ('<data value="%s" />' % value)
-
 def pull_data():
     # Get date and create result dict
-    # now = datetime.datetime.now() <-- TODO remove completely after testing
     datestring = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
     result = {'date': datestring}
     # Get data from SCADA page

@@ -1,37 +1,39 @@
 #!/usr/bin/python
 import cgi
 import cgitb
-cgitb.enable()
-from string import Template
 from ccn import *
+import json
+
+cgitb.enable()
 
 form = cgi.FieldStorage()
-setup(overwrite=(form.getfirst("reset") == "true"))
-# Get newest data and save it to the temp file
+do_reset = (form.getfirst("reset") == "true")
+setup(overwrite=do_reset)
+
+# Load data
 new_data = pull_data()
 save_data(new_data, "current.json")
-# Open last data
 last_data = open_data("last.json")
-buildingTags = []
+
+readings = {}
 for (buildingName, dataValue) in new_data['data'].items():
     # Skip if the meter for this building had an error at last reading 
     if buildingName not in last_data['data']:
         continue
-    dataTags = [
-        wrap_data(last_data['data'][buildingName]),
-        wrap_data(dataValue),
-        wrap_data(dataValue - last_data['data'][buildingName])
-    ]
-    buildingTags.append('<building name="%s">%s</building>'% (buildingName, '\n'.join(dataTags)))
 
-header = "Content-Type:text/xml\n"
+    # Build output json
+    readings[buildingName] = {
+            "last_reading": last_data['data'][buildingName],
+            "new_reading": dataValue,
+            "difference": dataValue - last_data['data'][buildingName]
+            }
 
-print header
+output = {
+        "current_date": new_data['date'],
+        "last_push_date": last_data['date'],
+        "readings": readings
+        }
+
+print "Content-Type:application/json"
 print
-wrapper = Template("""
-<transmission>
-    <date value="$date" />
-    $data
-</transmission>
-""")
-print wrapper.substitute(date=last_data['date'], data='\n'.join(buildingTags))
+print json.dumps(output)

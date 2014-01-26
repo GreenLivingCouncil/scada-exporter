@@ -4,6 +4,7 @@ import cgitb
 cgitb.enable()
 from string import Template
 from ccn import *
+import json
 
 try:
     # Get data from files
@@ -23,13 +24,16 @@ except Exception as e:
     success = "false"
     error = e.args[0]
 
-# Emit xml message
-header = "Content-Type:text/xml\n"
-print header
+print "Content-Type:application/json"
 print 
-wrapper = Template("""
-<transmission success="$success">
-$error
-</transmission>
-""")
-print wrapper.substitute(success=success, error=error)
+print json.dumps({
+        "success": success,
+        "error": ", ".join([unicode(elem) for elem in e.args])
+        })
+
+# wrapper = Template("""
+# <transmission success="$success">
+# $error
+# </transmission>
+# """)
+# print wrapper.substitute(success=success, error=error)
