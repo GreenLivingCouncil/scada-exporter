@@ -6,3 +6,4 @@ last.json
 current.json
 *.bak
 dump.html
+*.log

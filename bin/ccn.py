@@ -5,6 +5,7 @@ import datetime
 import re
 import os
 from requests import session
+import logging
 
 # URLS
 SCADA_URL = "http://scadaweb.stanford.edu/ion/data/getRTxmlData.asp?dgm=//scadaweb/ion-ent/config/diagrams/ud/temp/amrit.dgm&node=WebReachDefaultDiagramNode"
@@ -28,13 +29,15 @@ SUM_DEFS = [
     ("CROTHERS.STERN", ("CROTHERS.STERN_BURBANK_ZAPATA_E1152", "CROTHERS.STERN_DONNER_SERRA_E1151", "CROTHERS.STERN_TWAINS_LARKINS_E1154"))
     ]
 
+logging.basicConfig(filename="ccn.log", level=logging.DEBUG, format='[%(asctime)s] %(message)s')
+
 def get_csrf_token(page_text):
     """Extract csrf token from the page content."""
     search_start = page_text.find('csrfmiddlewaretoken')
     search_end = page_text.find('>', search_start)
     match = re.search(r"value='(\w*)'", page_text[search_start:search_end])
     if not match:
-        raise Exception("csrf token could not be found.")
+        raise Exception("csrf token could not be found in: %s" % page_text[search_start:search_end])
     return match.group(1)
 
 def smart_post(conn, url, data):
@@ -107,7 +110,7 @@ def push_data(last_data, new_data):
         # Upload data
         for (building_name, entry) in iter_readings(last_data, new_data):
             # Skip if building codes don't exist for this building, or if problems with meter.
-            if not codes[building_name]:
+            if not codes[building_name] or "error" in entry:
                 continue
             submit_one(conn, codes[building_name], entry['difference'], time_interval)
 

@@ -22,8 +22,9 @@ try:
     error = ""
 
 except Exception as e:
+    logging.error(e)
     success = False
-    error = ", ".join([unicode(elem) for elem in e.args])
+    error = json.dumps(e.args)
 
 print "Content-Type:application/json"
 print 
