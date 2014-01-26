@@ -38,28 +38,49 @@ $(document).ready(function() {
     }
 
     function pushData() {
-        var xhr=new XMLHttpRequest();
-        xhr.onreadystatechange = function(){
-            if (xhr.readyState != 4 || xhr.status != 200) {
-                return;
-            }
-            var xmlDoc = xhr.responseXML;
-            var headerElem = xmlDoc.getElementsByTagName("transmission")[0];
-            if (headerElem.getAttribute("success") == "true") {
-                button.style.backgroundColor = "green";
-                button.innerHTML = "Success!";
+
+        $.getJSON("bin/pushdata.py")
+        .done(function( response ) {
+            if (response.success) {
+                $("#pushButton").css("background-color", "green")
+                                .text("Success!");
             } else {
-                // Report error if not success.
-                button.style.backgroundColor = "red";
-                button.innerHTML = "Error: &quot;" + headerElem.getAttribute("e") + "&quot; Please report to Stephen.";
+                $("#pushButton").css("background-color", "red")
+                                .text("Error: Please report to Stephen.");
+                console.log(response.error);
             }
-        }
-        var button = document.getElementById("pushbutton");
-        button.setAttribute("onclick", "");
-        button.innerHTML = "Pushing...";
-        button.style.backgroundColor = "yellow";
-        xhr.open("GET", "bin/pushdata.py", true);
-        xhr.send();
+        })
+        .fail(function( jqxhr, textStatus, error ) {
+            var err = textStatus + ", " + error;
+            // TODO display visible error message
+            console.log( "Request Failed: " + err );
+        });
+
+        $("#pushButton").css("background-color", "yellow")
+                        .text("Pushing...");
+
+//        var xhr=new XMLHttpRequest();
+//        xhr.onreadystatechange = function(){
+//            if (xhr.readyState != 4 || xhr.status != 200) {
+//                return;
+//            }
+//            var xmlDoc = xhr.responseXML;
+//            var headerElem = xmlDoc.getElementsByTagName("transmission")[0];
+//            if (headerElem.getAttribute("success") == "true") {
+//                button.style.backgroundColor = "green";
+//                button.innerHTML = "Success!";
+//            } else {
+//                // Report error if not success.
+//                button.style.backgroundColor = "red";
+//                button.innerHTML = "Error: &quot;" + headerElem.getAttribute("e") + "&quot; Please report to Stephen.";
+//            }
+//        }
+//        var button = document.getElementById("pushbutton");
+//        button.setAttribute("onclick", "");
+//        button.innerHTML = "Pushing...";
+//        button.style.backgroundColor = "yellow";
+//        xhr.open("GET", "bin/pushdata.py", true);
+//        xhr.send();
     }
 
     // Bind handlers for buttons.

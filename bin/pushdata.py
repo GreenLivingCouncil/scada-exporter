@@ -1,10 +1,10 @@
 #!/usr/bin/python
 import cgi
 import cgitb
-cgitb.enable()
-from string import Template
 from ccn import *
 import json
+
+cgitb.enable()
 
 try:
     # Get data from files
@@ -18,10 +18,10 @@ try:
     save_data(new_data, "last.json")
 
     # Set success flags
-    success = "true"
+    success = True
     error = ""
 except Exception as e:
-    success = "false"
+    success = False
     error = e.args[0]
 
 print "Content-Type:application/json"
@@ -31,9 +31,3 @@ print json.dumps({
         "error": ", ".join([unicode(elem) for elem in e.args])
         })
 
-# wrapper = Template("""
-# <transmission success="$success">
-# $error
-# </transmission>
-# """)
-# print wrapper.substitute(success=success, error=error)

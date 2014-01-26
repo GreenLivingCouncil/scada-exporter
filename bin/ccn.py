@@ -1,6 +1,5 @@
 #!/usr/bin/python
 import json
-import xml.etree.ElementTree as ET
 import urllib2
 import datetime
 import os
@@ -27,7 +26,7 @@ def push_data(last_data, new_data):
     time_interval = get_time_interval(last_data['date'], new_data['date'])
     # Open the dictionary for building codes
     with open('codes.json') as codes_f:
-        codes= json.load(codes_f)
+        codes = json.load(codes_f)
     with session() as c:
         # Login
         request = c.get('http://buildingdashboard.net/login/?next=/')
@@ -81,6 +80,8 @@ def setup(overwrite=False):
     save_data(first_data, "last.json")
 
 def pull_data():
+    import xml.etree.ElementTree as ET
+
     # Get date and create result dict
     datestring = datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")
     result = {'date': datestring}
