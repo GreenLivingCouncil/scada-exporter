@@ -12,7 +12,7 @@ logging.basicConfig(filename="ccn.log", level=logging.DEBUG, format='[%(asctime)
 # URLS
 SCADA_URL = "http://scadaweb.stanford.edu/ion/data/getRTxmlData.asp?dgm=//scadaweb/ion-ent/config/diagrams/ud/temp/amrit.dgm&node=WebReachDefaultDiagramNode"
 DASHBOARD_LOGIN_URL = "http://buildingdashboard.net/login"
-FORM_URL = "http://buildingdashboard.net/facilities/point/{form_id}/data"
+FORM_URL = "http://buildingdashboard.net/facilities/point/{meter_id}/data"
 
 # Lucid Building Dashboard login info
 LUCID_USERNAME = "sashab@stanford.edu"
@@ -31,24 +31,34 @@ SUM_DEFS = [
     ("CROTHERS.STERN", ("CROTHERS.STERN_BURBANK_ZAPATA_E1152", "CROTHERS.STERN_DONNER_SERRA_E1151", "CROTHERS.STERN_TWAINS_LARKINS_E1154"))
     ]
 
-def get_csrf_token(page_text):
+class WebException(Exception):
+    def __init__(self, message, request):
+        Exception.__init__(self, message)
+
+        with open("dump.html", "w") as f:
+            f.write(request.text.encode('ascii', 'ignore'))
+
+
+def get_csrf_token(request):
     """Extract csrf token from the page content."""
+    page_text = request.text
     search_start = page_text.find('csrfmiddlewaretoken')
     search_end = page_text.find('>', search_start)
-    match = re.search(r"value='(\w*)'", page_text[search_start:search_end])
+    search_string = page_text[search_start:search_end]
+    match = re.search(r"value='(\w*)'", search_string)
     if not match:
-        raise Exception("csrf token could not be found in: %s" % page_text[search_start:search_end])
+        raise WebException("csrf token could not be found in: %s" % search_string, request)
     return match.group(1)
 
 def smart_post(conn, url, data):
     """POST data to given url along with csrf token extracted from the same page."""
-    response = conn.get(url)
-    data['csrfmiddlewaretoken'] = get_csrf_token(response.text)
+    request = conn.get(url)
+    data['csrfmiddlewaretoken'] = get_csrf_token(request)
     return conn.post(url, data=data)
 
-def get_form_url(building_codes):
+def get_form_url(building_code):
     """Get form URL for the given set of building codes."""
-    return FORM_URL.format(form_id=building_codes[1])
+    return FORM_URL.format(meter_id=building_code)
 
 def rounded_hour(dt):
     """Returns the rounded hour of the given Datetime object."""
@@ -65,8 +75,9 @@ def get_time_interval(last_datestring, new_datestring):
         'localEndTime' :   rounded_hour(new_date)
         }
 
-def get_submission_error(page_text):
+def get_submission_error(request):
     # TODO make this more robust?
+    page_text = request.text
     start = page_text.find('errorlist') + 15
     if start == 14:
         start = page_text.find('class="error"') + 14
@@ -118,16 +129,14 @@ def push_data(last_data, new_data):
             submit_one(conn, codes[building_name], entry['difference'], time_interval)
             logging.info("Submitted %s kwH for %s" % (entry['difference'], building_name))
 
-def submit_one(conn, building_codes, value, time_interval):
+def submit_one(conn, building_code, value, time_interval):
     """Submit new reading for one building."""
     payload = {'value' : value}
     payload.update(time_interval)
-    request = smart_post(conn, get_form_url(building_codes), payload)
+    request = smart_post(conn, get_form_url(building_code), payload)
 
     if u"Reading added" not in request.text:
-        with open("dump.html", "w") as f:
-            f.write(request.text.encode('ascii', 'ignore'))
-        raise Exception("%s %s" % (repr(building_codes), get_submission_error(request.text)))
+        raise WebException("%s %s" % (building_code, get_submission_error(request)), request)
 
 class BuildingNode(object):
     """Simple class to extract building info from XML node."""
