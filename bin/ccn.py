@@ -106,7 +106,7 @@ def iter_readings(last_data, new_data):
                 }
         yield (building_name, entry)
 
-def push_data(last_data, new_data):
+def push_data(last_data, new_data, totalizer=True):
     """Push data to Lucid."""
     time_interval = get_time_interval(last_data['date'], new_data['date'])
     codes = open_data(CODES_PATH)
@@ -126,8 +126,9 @@ def push_data(last_data, new_data):
             if "error" in entry:
                 logging.warning("Skipped %s due to meter error: %s" % (building_name, entry['error']))
                 continue
-            submit_one(conn, codes[building_name], entry['difference'], time_interval)
-            logging.info("Submitted %s kwH for %s" % (entry['difference'], building_name))
+            value = entry['new_reading'] if totalizer else entry['difference']
+            submit_one(conn, codes[building_name], value, time_interval)
+            logging.info("Submitted %s kWh for %s" % (value, building_name))
 
 def submit_one(conn, building_code, value, time_interval):
     """Submit new reading for one building."""
