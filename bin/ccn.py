@@ -15,7 +15,7 @@ DASHBOARD_LOGIN_URL = "http://buildingdashboard.net/login"
 FORM_URL = "http://buildingdashboard.net/facilities/point/{meter_id}/data"
 
 # Lucid Building Dashboard login info
-LUCID_USERNAME = "sashab@stanford.edu"
+LUCID_USERNAME = "sckoo@stanford.edu"
 LUCID_PASSWORD = "stanfordglcccn"
 
 # Data file paths
@@ -145,7 +145,8 @@ class BuildingNode(object):
         self.name = xml_node.attrib['nodeName']
         self.error = xml_node[1].attrib['e'] if 'e' in xml_node[1].attrib else ""
         # strips kWh reading of any non-numeric characters, including '.' !!
-        self.kwh = int(re.sub(r'[^\d]+', '', xml_node[1].attrib['v'])) 
+        kwh_str = re.sub(r'[^\d]+', '', xml_node[1].attrib['v']) or 0
+        self.kwh = int(kwh_str)
 
 def pull_data():
     """Pull data from SCADA XML data sheet into dict with timestamp."""
