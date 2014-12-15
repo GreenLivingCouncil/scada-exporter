@@ -6,22 +6,12 @@ import re
 import os
 from requests import session
 import logging
+import ConfigParser
 
 logging.basicConfig(filename="ccn.log", level=logging.DEBUG, format='[%(asctime)s] %(message)s')
 
-# URLS
-SCADA_URL = "http://scadaweb.stanford.edu/ion/data/getRTxmlData.asp?dgm=//scadaweb/ion-ent/config/diagrams/ud/temp/amrit.dgm&node=WebReachDefaultDiagramNode"
-DASHBOARD_LOGIN_URL = "http://buildingdashboard.net/login"
-FORM_URL = "http://buildingdashboard.net/facilities/point/{meter_id}/data"
-
-# Lucid Building Dashboard login info
-LUCID_USERNAME = "sckoo@stanford.edu"
-LUCID_PASSWORD = "stanfordglcccn"
-
-# Data file paths
-LAST_DATA_PATH = "last.json"
-NEW_DATA_PATH = "current.json"
-CODES_PATH = "codes.json"
+config = ConfigParser.ConfigParser()
+config.read("config.ini")
 
 # Datetime Format
 DT_FORMAT = "%m/%d/%Y %H:%M:%S"
@@ -58,7 +48,7 @@ def smart_post(conn, url, data):
 
 def get_form_url(building_code):
     """Get form URL for the given set of building codes."""
-    return FORM_URL.format(meter_id=building_code)
+    return config.get("urls", "data-form").format(meter_id=building_code)
 
 def rounded_hour(dt):
     """Returns the rounded hour of the given Datetime object."""
@@ -109,13 +99,15 @@ def iter_readings(last_data, new_data):
 def push_data(last_data, new_data, totalizer=True):
     """Push data to Lucid."""
     time_interval = get_time_interval(last_data['date'], new_data['date'])
-    codes = open_data(CODES_PATH)
+    codes = open_data(config.get("file-paths", "codes"))
 
     with session() as conn:
         # Login
-        request = smart_post(conn, DASHBOARD_LOGIN_URL, {
-            'username': LUCID_USERNAME,
-            'password': LUCID_PASSWORD
+        request = smart_post(conn,
+            config.get("urls", "dashboard-login"),
+            {
+                'username': config.get("lucid-login", "username"),
+                'password': config.get("lucid-login", "password")
             })
 
         # Upload data
@@ -156,7 +148,7 @@ def pull_data():
     # Parse data from SCADA page
     sleep_time = 1
     while True:
-        response = urllib2.urlopen(SCADA_URL)
+        response = urllib2.urlopen(config.get("urls", "scada-sheet"))
         root = ET.fromstring(response.read())
         buildings = [BuildingNode(node) for node in root]
         data = dict((building.name, building.error or building.kwh) 
@@ -198,8 +190,9 @@ def open_data(src):
 
 def setup(overwrite=False):
     """If a last data file doesn't exist, create it from new data."""
-    if not overwrite and os.path.exists(LAST_DATA_PATH):
+    last_data_path = config.get("file-paths", "last-data")
+    if not overwrite and os.path.exists(last_data_path):
         return
     first_data = pull_data()
-    save_data(first_data, LAST_DATA_PATH)
-    logging.warning("Overwrote or created new %s" % LAST_DATA_PATH)
+    save_data(first_data, last_data_path)
+    logging.warning("Overwrote or created new %s" % last_data_path)

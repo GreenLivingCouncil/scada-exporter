@@ -7,3 +7,4 @@ current.json
 *.bak
 dump.html
 *.log
+config.ini
