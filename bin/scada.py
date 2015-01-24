@@ -3,7 +3,8 @@ import xml.etree.ElementTree as ET
 import time
 import urllib2
 import re
-from models import DataSet, BuildingNode
+from models import DataSet, Building
+import logging
 
 BUILDING_BLACKLIST = set(["VIP.SCADAWEB"])
 
@@ -21,9 +22,8 @@ def fetch(data_url, timeout=100):
     while (time.time() - start_time) < timeout:
         response = urllib2.urlopen(data_url)
         root = ET.fromstring(response.read())
-        buildings_raw = [get_building_node(node) for node in root]
         buildings = dict((building.name, building)
-                for building in buildings_raw
+                for building in map(parse_node, root)
                 if building not in BUILDING_BLACKLIST)
 
         if buildings:
@@ -34,26 +34,25 @@ def fetch(data_url, timeout=100):
     else:
         raise Exception("Data fetch timed out: SCADA sheet empty.")
 
-    # FIXME make global logger
-    # logging.debug("Data retrieved in %s seconds" % time.time() - start_time)
+    logging.debug("Data retrieved in %s seconds" % (time.time() - start_time))
 
     # Carry out definitions for combined dorms.
     for combined, parts in SUM_DEFS:
-        buildings[combined] = BuildingNode.combine(combined, [buildings[part] for part in parts])
+        buildings[combined] = Building.combine(combined, [buildings[part] for part in parts])
 
     return DataSet(buildings)
 
-def get_building_node(xml_node):
+def parse_node(xml_node):
     name = xml_node.attrib['nodeName']
     kw_node = xml_node[0]
     kwh_node = xml_node[1]
 
     if 'e' in kwh_node.attrib:
-        return BuildingNode(name, error=kwh_node.attrib['e'])
+        return Building(name, error=kwh_node.attrib['e'])
     else:
         # strips kWh reading of any non-numeric characters, including '.' !!
         kwh = float(re.sub(r'[^\d\.]', '', kwh_node.attrib['v']) or 0)
         kw = float(re.sub(r'[^\d\.]', '', kw_node.attrib['v']) or 0)
-        return BuildingNode(name, kwh=kwh, kw=kw)
+        return Building(name, kwh=kwh, kw=kw)
 
 

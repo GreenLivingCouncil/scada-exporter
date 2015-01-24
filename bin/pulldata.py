@@ -1,26 +1,43 @@
 #!/usr/bin/python
 import cgi
 import cgitb
-from ccn import *
+import scada
+import ccn
+from models import DataSet
 import json
 
 cgitb.enable()
 
 form = cgi.FieldStorage()
-do_reset = (form.getfirst("reset") == "true")
-setup(overwrite=do_reset)
+if form.getfirst("reset") == "true":
+    ccn.reset_data()
 
 # Load and update data
-new_data = pull_data()
-save_data(new_data, "current.json")
-last_data = open_data("last.json")
+ccn.update_data()
 
 # Build output json
-readings = dict(iter_readings(last_data, new_data))
+def iter_readings():
+    for (name, new_reading) in ccn.new_data.buildings.items():
+        last_reading = ccn.last_data.buildings[name]
+
+        errors = []
+        if last_reading.error:
+            errors += ["Last reading: %s" % last_reading.error]
+        if new_reading.error:
+            errors += ["New reading: %s" % last_reading.error]
+
+        entry = {
+            "error": '<br/>'.join(errors),
+            "last_reading": last_reading.kwh,
+            "new_reading": new_reading.kwh,
+            "difference": new_reading.kwh - last_reading.kwh
+            }
+        yield (name, entry)
+
 output = {
-        "current_date": new_data['date'],
-        "last_push_date": last_data['date'],
-        "readings": readings
+        "current_date": str(ccn.new_data.date),
+        "last_push_date": str(ccn.last_data.date),
+        "readings": dict(iter_readings())
         }
 
 print "Content-Type:application/json"

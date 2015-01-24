@@ -1,9 +1,14 @@
 """The data objects."""
 import datetime
+import json
 
-class BuildingNode(object):
+# Datetime Format
+DT_FORMAT = "%m/%d/%Y %H:%M:%S"
+
+class Building(object):
     """Simple class to extract building info from XML node."""
     def __init__(self, name, error=None, kwh=None, kw=None):
+        # Semantics of kwh and kw are undefined when error is set.
         self.name = name
         self.error = error
         self.kwh = kwh
@@ -14,18 +19,34 @@ class BuildingNode(object):
         # skip if there is a hole in the constituent data
         # TODO actually report which building had the error
         if any(building.error for building in buildings):
-            return BuildingNode(
+            return Building(
                 combined_name,
                 error="Error in constituent building meter (at least one of %s)." % ", ".join(parts)
             )
         else:
-            return BuildingNode(
+            return Building(
                 combined_name,
                 kwh=sum(building.kwh for building in buildings),
                 kw=sum(building.kw for building in buildings)
             )
 
-class DataSetDelta(object):
+    def __sub__(self, other):
+        if self.name != other.name:
+            raise ValueError("Difference can only be computed between Buildings with the same name.")
+
+        if self.error:
+            return BuildingDelta(self.name, error=("First reading: %s" % self.error))
+        elif other.error:
+            return BuildingDelta(self.name, error=("Second reading: %s" % self.error))
+        else:
+            return BuildingDelta(self.name, kwh=(self.kwh - other.kwh), kw=(self.kw - other.kw))
+
+    def __repr__(self):
+        return "%s(%r, %r, %r, %r)" % (self.__class__.__name__, self.name, self.error, self.kwh, self.kw)
+
+
+class BuildingDelta(Building):
+    """Identical to Building, but represents delta values instead."""
     pass
 
 class DataSet(object):
@@ -37,7 +58,7 @@ class DataSet(object):
         """Save to JSON file."""
         data_dict = {
             "date": self.date.strftime(DT_FORMAT),
-            "data": self.buildings
+            "data": [building.__dict__ for building in self.buildings.itervalues()]
         }
         with open(json_path, 'w') as dest_f:
             json.dump(data_dict, dest_f, indent=4, sort_keys=True)
@@ -47,5 +68,11 @@ class DataSet(object):
         """Load from JSON file."""
         with open(json_path) as src_f:
             data_dict = json.load(src_f)
-            return DataSet(data_dict["data"], data_dict["date"])
+            date = datetime.datetime.strptime(data_dict["date"], DT_FORMAT)
+            buildings_list = [Building(**building) for building in data_dict["data"]]
+            buildings = dict((building.name, building) for building in buildings_list)
+            return DataSet(buildings, date)
+
+    def __repr__(self):
+        return "DataSet(%r, %r)" % (self.date, self.buildings.values())
 
