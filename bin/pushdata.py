@@ -1,30 +1,25 @@
 #!/usr/bin/python
 import cgi
 import cgitb
-from ccn import *
 import json
+import ccn
+import logging
+from lucid import WebException
 
 cgitb.enable()
 
 try:
-    # Get data from files
-    last_data = open_data(LAST_DATA_PATH)
-    new_data = open_data(NEW_DATA_PATH)
-
     # Upload to Lucid!
-    push_data(last_data, new_data)
-
-    # Save new data as the last data
-    save_data(new_data, LAST_DATA_PATH)
+    ccn.push_data()
 
     # Set success flags
     success = True
-    error = ""
+    error = None
 
-except Exception as e:
+except WebException as e:
     logging.error(e)
     success = False
-    error = json.dumps(e.args)
+    error = e.message
 
 print "Content-Type:application/json"
 print 

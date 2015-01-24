@@ -6,25 +6,21 @@ import re
 from models import DataSet, Building
 import logging
 
-BUILDING_BLACKLIST = set(["VIP.SCADAWEB"])
+BUILDING_BLACKLIST = ["VIP.SCADAWEB"]
+SCADA_SHEET_URL = "http://scadaweb.stanford.edu/ion/data/getRTxmlData.asp?dgm=//scadaweb/ion-ent/config/diagrams/ud/temp/amrit.dgm&node=WebReachDefaultDiagramNode"
 
-# Building entry summing specifications
-SUM_DEFS = [
-    ("CROTHERS.STERN", ("CROTHERS.STERN_BURBANK_ZAPATA_E1152", "CROTHERS.STERN_DONNER_SERRA_E1151", "CROTHERS.STERN_TWAINS_LARKINS_E1154"))
-    ]
-
-def fetch(data_url, timeout=100):
+def fetch(timeout=100):
     """Fetch and parse data from SCADA XML data sheet."""
 
     # Parse data from SCADA page
     sleep_time = 1
     start_time = time.time()
     while (time.time() - start_time) < timeout:
-        response = urllib2.urlopen(data_url)
+        response = urllib2.urlopen(SCADA_SHEET_URL)
         root = ET.fromstring(response.read())
         buildings = dict((building.name, building)
                 for building in map(parse_node, root)
-                if building not in BUILDING_BLACKLIST)
+                if building.name not in BUILDING_BLACKLIST)
 
         if buildings:
             break
@@ -35,11 +31,6 @@ def fetch(data_url, timeout=100):
         raise Exception("Data fetch timed out: SCADA sheet empty.")
 
     logging.debug("Data retrieved in %s seconds" % (time.time() - start_time))
-
-    # Carry out definitions for combined dorms.
-    for combined, parts in SUM_DEFS:
-        buildings[combined] = Building.combine(combined, [buildings[part] for part in parts])
-
     return DataSet(buildings)
 
 def parse_node(xml_node):

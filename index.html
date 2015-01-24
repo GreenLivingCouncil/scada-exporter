@@ -10,8 +10,8 @@
                 <table id="datatable">
                     <tr>
                         <th>Building</th>
-                        <th>Last Reading (kWh)</th>
-                        <th>New Reading (kWh)</th>
+                        <th>Last Reading (kWh)<small><div id="push-date"></div></small></th>
+                        <th>New Reading (kWh)<small><div id="pull-date"></div></small></th>
                         <th>Consumed Since Last Push (kWh)</th>
                     </tr>
                 </table>
@@ -19,21 +19,16 @@
             <td>
                 <table>
                     <tr>
-                        <th>
-                            <div>Last Updated:</div>
-                            <div id="pull-date">&nbsp;</div>
-                            <div>Last Pushed:</div>
-                            <div id="push-date">&nbsp;</div>
-                        </th>
+                        <th>Actions</th>
                     </tr>
                     <tr>
-                        <td style="padding-top:5; padding-bottom:5;"><button id="refreshButton">Refresh</button></td>
+                        <td style="padding-top:5; padding-bottom:5;"><button id="refreshButton">Refresh Data</button></td>
                     </tr>
                     <tr>
                         <td style="padding-top:5; padding-bottom:5;"><button id="pushButton">Push Data to Lucid</button></td>
                     </tr>
                     <tr>
-                        <td style="padding-top:5; padding-bottom:5;"><button id="resetButton">RESET</button></td>
+                        <td style="padding-top:5; padding-bottom:5;"><button id="resetButton">Reset Data</button></td>
                     </tr>
                     <tr>
                         <td style="padding-top:5; padding-bottom:5;"><button onclick="window.open('http://buildingdashboard.net/facilities/', '_blank')">Lucid Dashboard</button></td>

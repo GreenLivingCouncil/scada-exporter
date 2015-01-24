@@ -1,10 +1,8 @@
 #!/usr/bin/python
 import cgi
 import cgitb
-import scada
-import ccn
-from models import DataSet
 import json
+import ccn
 
 cgitb.enable()
 

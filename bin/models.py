@@ -30,29 +30,17 @@ class Building(object):
                 kw=sum(building.kw for building in buildings)
             )
 
-    def __sub__(self, other):
-        if self.name != other.name:
-            raise ValueError("Difference can only be computed between Buildings with the same name.")
-
-        if self.error:
-            return BuildingDelta(self.name, error=("First reading: %s" % self.error))
-        elif other.error:
-            return BuildingDelta(self.name, error=("Second reading: %s" % self.error))
-        else:
-            return BuildingDelta(self.name, kwh=(self.kwh - other.kwh), kw=(self.kw - other.kw))
-
     def __repr__(self):
         return "%s(%r, %r, %r, %r)" % (self.__class__.__name__, self.name, self.error, self.kwh, self.kw)
-
-
-class BuildingDelta(Building):
-    """Identical to Building, but represents delta values instead."""
-    pass
 
 class DataSet(object):
     def __init__(self, buildings, date=datetime.datetime.now()):
         self.buildings = buildings
         self.date = date
+
+    def apply_combinations(self, combine_defs):
+        for combination, parts in combine_defs.iteritems():
+            self.buildings[combination] = Building.combine(combination, [self.buildings[p] for p in parts])
 
     def save(self, json_path):
         """Save to JSON file."""
