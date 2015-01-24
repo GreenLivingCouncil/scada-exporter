@@ -6,7 +6,6 @@ import json
 DT_FORMAT = "%m/%d/%Y %H:%M:%S"
 
 class Building(object):
-    """Simple class to extract building info from XML node."""
     def __init__(self, name, error=None, kwh=None, kw=None):
         # Semantics of kwh and kw are undefined when error is set.
         self.name = name
