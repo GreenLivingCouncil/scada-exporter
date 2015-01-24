@@ -27,10 +27,10 @@ def get_csrf_token(request):
 
 def smart_post(conn, url, data):
     """POST data to given url along with csrf token extracted from the same page."""
-    request = conn.get(url)
+    request = conn.get(url, verify=False)
     data['csrfmiddlewaretoken'] = get_csrf_token(request)
-    logging.info('csrf=' + data['csrfmiddlewaretoken'])
-    post_request = conn.post(url, data=data, headers={'referer': url})
+    logging.debug('csrf=' + data['csrfmiddlewaretoken'])
+    post_request = conn.post(url, data=data, headers={'referer': url}, verify=False)
     if post_request.status_code == 302:
         raise WebException("Login failed")
     return post_request
