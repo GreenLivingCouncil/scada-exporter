@@ -41,9 +41,8 @@ def parse_node(xml_node):
     if 'e' in kwh_node.attrib:
         return Building(name, error=kwh_node.attrib['e'])
     else:
-        # strips kWh reading of any non-numeric characters, including '.' !!
-        kwh = float(re.sub(r'[^\d\.]', '', kwh_node.attrib['v']) or 0)
-        kw = float(re.sub(r'[^\d\.]', '', kw_node.attrib['v']) or 0)
+        kwh = float(kwh_node.attrib['rv'] or 0)
+        kw = float(kw_node.attrib['rv'] or 0)
         return Building(name, kwh=kwh, kw=kw)
 
 
