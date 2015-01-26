@@ -9,6 +9,8 @@ from models import Building, DataSet
 DATA_FORM = "https://buildingos.com/meters/{meter_id}/data/add"
 DASHBOARD_LOGIN = "https://buildingos.com/login"
 
+logging.getLogger("requests").setLevel(logging.WARNING)
+
 class WebException(Exception):
     def __init__(self, message, request):
         Exception.__init__(self, message)
@@ -90,7 +92,7 @@ def submit(last_data, new_data, codes, username, password, totalizer=True):
 
             # Skip if building codes don't exist for this building, or if problems with meter.
             if building_name not in codes or not codes[building_name]:
-                logging.warning("Skipping %s, no code exists" % building_name)
+                logging.debug("Skipping %s, no code exists" % building_name)
                 continue
 
             # Skip if there are interfering meter errors
@@ -109,6 +111,6 @@ def submit(last_data, new_data, codes, username, password, totalizer=True):
                 value = new_reading.kwh - last_reading.kwh
 
             submit_one(conn, codes[building_name], value, time_interval)
-            logging.info("Submitted %s kWh for %s" % (value, building_name))
+            logging.debug("Submitted %s kWh for %s" % (value, building_name))
 
 
