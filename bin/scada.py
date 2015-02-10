@@ -15,12 +15,15 @@ def fetch(timeout=100):
     """Fetch and parse data from SCADA XML data sheet."""
 
     # Parse data from SCADA page
+    # If the data sheet hasn't been requested in a while,
+    # the first response will usually be empty.
+    # (The pump has to be primed first, so to speak.)
+    # So we retry until we actually see data.
     sleep_time = 1
     start_time = time.time()
     while (time.time() - start_time) < timeout:
         response = urllib2.urlopen(SCADA_SHEET_URL)
         root = ET.fromstring(response.read())
-        timestamp = datetime.datetime.strptime(root.attrib['savedAt'], DT_FORMAT)
         buildings = dict((building.name, building)
                 for building in map(parse_node, root)
                 if building.name not in BUILDING_BLACKLIST)
@@ -33,6 +36,7 @@ def fetch(timeout=100):
     else:
         raise Exception("Data fetch timed out: SCADA sheet empty.")
 
+    timestamp = datetime.datetime.strptime(root.attrib['savedAt'], DT_FORMAT)
     now = datetime.datetime.now()
     if timestamp > datetime.datetime.now():
         logging.warning("SCADA timestamp %s is in the future (now: %s)." %
