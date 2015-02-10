@@ -5,9 +5,11 @@ import urllib2
 import re
 from models import DataSet, Building
 import logging
+import datetime
 
 BUILDING_BLACKLIST = ["VIP.SCADAWEB"]
 SCADA_SHEET_URL = "http://scadaweb.stanford.edu/ion/data/getRTxmlData.asp?dgm=//scadaweb/ion-ent/config/diagrams/ud/temp/amrit.dgm&node=WebReachDefaultDiagramNode"
+DT_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 def fetch(timeout=100):
     """Fetch and parse data from SCADA XML data sheet."""
@@ -18,6 +20,7 @@ def fetch(timeout=100):
     while (time.time() - start_time) < timeout:
         response = urllib2.urlopen(SCADA_SHEET_URL)
         root = ET.fromstring(response.read())
+        timestamp = datetime.datetime.strptime(root.attrib['savedAt'], DT_FORMAT)
         buildings = dict((building.name, building)
                 for building in map(parse_node, root)
                 if building.name not in BUILDING_BLACKLIST)
@@ -30,8 +33,14 @@ def fetch(timeout=100):
     else:
         raise Exception("Data fetch timed out: SCADA sheet empty.")
 
+    now = datetime.datetime.now()
+    if timestamp > datetime.datetime.now():
+        logging.warning("SCADA timestamp %s is in the future (now: %s)." %
+                (datetime.datetime.strftime(timestamp, DT_FORMAT),
+                datetime.datetime.strftime(now, DT_FORMAT)))
+
     logging.debug("Data retrieved in %s seconds" % (time.time() - start_time))
-    return DataSet(buildings)
+    return DataSet(buildings, timestamp)
 
 def parse_node(xml_node):
     name = xml_node.attrib['nodeName']
