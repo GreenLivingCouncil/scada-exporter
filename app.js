@@ -23,9 +23,12 @@ $(document).ready(function() {
         .done(function( data ) {
             // TODO: Reload data every time empty data is received.
             
+            var seconds_diff = (new Date(data.current_date) - new Date(data.last_push_date)) / 1000;
+
             // Update timestamps
             $("#pull-date").text(data.current_date);
             $("#push-date").text(data.last_push_date);
+            $("#time-diff").text(Math.round(seconds_diff / 60) + " minutes");
             
             var readings = data.readings;
             for (var building in readings) {

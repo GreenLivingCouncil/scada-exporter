@@ -13,7 +13,7 @@
                         <th>Building</th>
                         <th>Last Reading (kWh)<small><div id="push-date"></div></small></th>
                         <th>New Reading (kWh)<small><div id="pull-date"></div></small></th>
-                        <th>Consumed Since Last Push (kWh)</th>
+                        <th>Consumed Since Last Push (kWh)<small><div id="time-diff"></div></small</th>
                     </tr>
                 </table>
             </td>
@@ -23,16 +23,16 @@
                         <th>Actions</th>
                     </tr>
                     <tr>
-                        <td style="padding-top:5; padding-bottom:5;"><button id="refreshButton">Refresh Data</button></td>
+                        <td style="padding-top:5; padding-bottom:5;"><button id="refreshButton">Refresh</button></td>
                     </tr>
                     <tr>
-                        <td style="padding-top:5; padding-bottom:5;"><button id="pushButton">Push Data to Lucid</button></td>
+                        <td style="padding-top:5; padding-bottom:5;"><button id="pushButton">Push to BuildingOS</button></td>
                     </tr>
                     <tr>
-                        <td style="padding-top:5; padding-bottom:5;"><button id="resetButton">Reset Data</button></td>
+                        <td style="padding-top:5; padding-bottom:5;"><button id="resetButton">Reset</button></td>
                     </tr>
                     <tr>
-                        <td style="padding-top:5; padding-bottom:5;"><button onclick="window.open('http://buildingdashboard.net/facilities/', '_blank')">Lucid Dashboard</button></td>
+                        <td style="padding-top:5; padding-bottom:5;"><button onclick="window.open('https://buildingos.com/', '_blank')">BuildingOS Dashboard</button></td>
                     </tr>
                 </table>
                 <table><tr><td>
