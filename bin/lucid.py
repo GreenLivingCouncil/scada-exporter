@@ -5,6 +5,7 @@ import logging
 import requests # Requests v1.1.0
 from bs4 import BeautifulSoup # BeautifulSoup v4.3.2
 from models import Building, DataSet
+import datetime
 
 DATA_FORM = "https://buildingos.com/meters/{meter_id}/data/add"
 DASHBOARD_LOGIN = "https://buildingos.com/login"
@@ -45,14 +46,20 @@ def rounded_hour(dt):
     """Returns the rounded hour of the given Datetime object."""
     return dt.hour if dt.minute < 30 else dt.hour + 1
 
-def get_time_interval(last_date, new_date):
+def get_time_interval(last_date, new_date, totalizer=True):
     """Build dict that defines the time interval for the given datestring range."""
-    return {
-        'localStart' :     last_date.strftime("%m/%d/%Y"),
-        'localStartTime' : rounded_hour(last_date),
-        'localEnd' :       new_date.strftime("%m/%d/%Y"),
-        'localEndTime' :   rounded_hour(new_date)
-        }
+    if totalizer:
+        return {
+            'localEnd' :       new_date.strftime("%m/%d/%Y"),
+            'localEndTime' :   rounded_hour(new_date)
+            }
+    else:
+        return {
+            'localStart' :     last_date.strftime("%m/%d/%Y"),
+            'localStartTime' : rounded_hour(last_date),
+            'localEnd' :       new_date.strftime("%m/%d/%Y"),
+            'localEndTime' :   rounded_hour(new_date)
+            }
 
 def get_submission_error(request):
     soup = BeautifulSoup(request.text)
@@ -77,7 +84,6 @@ def submit_one(conn, building_code, value, time_interval):
 
 def submit(last_data, new_data, codes, username, password, totalizer=True):
     """Push data to Lucid."""
-    time_interval = get_time_interval(last_data.date, new_data.date)
 
     with requests.session() as conn:
         # Login
@@ -105,6 +111,7 @@ def submit(last_data, new_data, codes, username, password, totalizer=True):
 
             # Building Dashboard used to ask for the kWh's used over the specified time interval,
             # but is now compatible with the totalizer data
+            time_interval = get_time_interval(last_data.date, new_data.date, totalizer)
             if totalizer:
                 value = new_reading.kwh
             else:
