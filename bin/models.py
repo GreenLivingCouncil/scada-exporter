@@ -6,21 +6,22 @@ import json
 DT_FORMAT = "%m/%d/%Y %H:%M:%S"
 
 class Building(object):
-    def __init__(self, name, error=None, kwh=None, kw=None):
+    def __init__(self, name, error=None, kwh=0, kw=0):
         # Semantics of kwh and kw are undefined when error is set.
         self.name = name
         self.error = error
-        self.kwh = kwh
-        self.kw = kw
+        self.kwh = kwh or 0
+        self.kw = kw or 0
 
     @staticmethod
     def combine(combined_name, buildings):
         # skip if there is a hole in the constituent data
         # TODO actually report which building had the error
         if any(building.error for building in buildings):
+            building_names = ", ".join([building.name for building in buildings])
             return Building(
                 combined_name,
-                error="Error in constituent building meter (at least one of %s)." % ", ".join(parts)
+                error="Error in constituent building meter (at least one of %s)." % building_names
             )
         else:
             return Building(
